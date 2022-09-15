@@ -1,5 +1,9 @@
 ﻿
-var fileName = "ZNM-DCT-WIR-AR-AC-000015[00]_A1";
+using folderStructureApp;
+using System.Text.Json;
+
+var fileName = "level1a-DCT-WIR-AR-AC-000015[00]_A1";
+//var fileName = "ZNM-DCT-WIR-AR-AC-000015[00]_A1";
 
 // remove extension
 var splitName = fileName.Split('-');
@@ -10,6 +14,197 @@ var docType = splitName[2];
 var dicipline = splitName[3];
 var subDicipline = splitName[4];
 var sequentialNumber = splitName[5];
+
+
+//Dictionary<int, string> dicFoldersToCreate = new Dictionary<int, string>();
+
+LinkedList<string> folderPathToCreate = AddItemsToList(projCode, organisation, docType, dicipline, subDicipline, sequentialNumber);
+
+LinkedList<string> AddItemsToList(params string[] collection)
+{
+    LinkedList<string> output = new();
+    foreach (var item in collection)
+    {
+        output.AddLast(item);
+    }
+    return output;
+}
+
+var projectDocuments = getDocuments();
+
+if (projectDocuments != null)
+{
+
+    var foldersToCreateDto = getFolderToCreate(projectDocuments, folderPathToCreate);
+
+    var createThis = folderPathToCreate;
+
+
+}
+
+FolderToCreate getFolderToCreate(List<Folder> currentFolders, LinkedList<string> folderPathToCreate)
+{
+    // need to output starting parent ID, and remaining folders to create
+    var output = new FolderToCreate();
+    var rootFolder = currentFolders.Where(x => x.fullPath == "/").FirstOrDefault();
+
+    if (rootFolder == null) return output;
+
+    var rootFolderId = rootFolder.id;
+
+
+
+    //var files = projectDocuments.Where(x => x.isFolder == false).ToArray();
+    var folders = projectDocuments.Where(x => x.isFolder).ToArray();
+
+
+    var firstLevelFolders = folders.Where(x => x.parentFolderId == rootFolderId).ToArray();
+
+    if (firstLevelFolders != null)
+    {
+        var projectCodeFolder = firstLevelFolders.FirstOrDefault(x => x.displayName == projCode);
+
+        if (projectCodeFolder == null)
+        {
+            output.ParentFolderId = rootFolderId;
+            output.FolderStructure = folderPathToCreate;
+            return output;
+        }
+        else
+        {
+            folderPathToCreate.RemoveFirst();
+        }
+
+        // second level organisation
+        var firstLevelIds = firstLevelFolders.Select(x => x.id).ToArray();
+        var secondLevelFolders = folders.Where(x => firstLevelIds.Contains(x.parentFolderId)).ToArray();
+
+        var organisationFolder = secondLevelFolders.FirstOrDefault(x => x.displayName == organisation);
+        if (organisationFolder == null)
+        {
+            output.ParentFolderId = projectCodeFolder.id;
+            output.FolderStructure = folderPathToCreate;
+            return output;
+        }
+        else
+        {
+            folderPathToCreate.RemoveFirst();
+        }
+
+
+        // 3rd level (docType)
+        var secondLevelIds = secondLevelFolders.Select(x => x.id).ToArray();
+        var thirdLevelFolders = folders.Where(x => secondLevelIds.Contains(x.parentFolderId)).ToArray();
+
+        var docTypeFolder = thirdLevelFolders.FirstOrDefault(x => x.displayName == docType);
+        if (docTypeFolder == null)
+        {
+            output.ParentFolderId = organisationFolder.id;
+            output.FolderStructure = folderPathToCreate;
+            return output;
+        }
+        else
+        {
+            folderPathToCreate.RemoveFirst();
+        }
+
+
+        // 4th level (dicipline)
+        var thirdLevelIds = thirdLevelFolders.Select(x => x.id).ToArray();
+        var fourthLevelFolders = folders.Where(x => thirdLevelIds.Contains(x.parentFolderId)).ToArray();
+
+        var diciplineFolder = fourthLevelFolders.FirstOrDefault(x => x.displayName == dicipline);
+        if (diciplineFolder == null)
+        {
+            output.ParentFolderId = docTypeFolder.id;
+            output.FolderStructure = folderPathToCreate;
+            return output;
+        }
+        else
+        {
+            folderPathToCreate.RemoveFirst();
+        }
+
+
+        // 5th level (subDicipline)
+        var fourthLevelIds = fourthLevelFolders.Select(x => x.id).ToArray();
+        var fifthLevelFolders = folders.Where(x => fourthLevelIds.Contains(x.parentFolderId)).ToArray();
+
+        var subDiciplineFolder = fifthLevelFolders.FirstOrDefault(x => x.displayName == subDicipline);
+        if (subDiciplineFolder == null)
+        {
+            output.ParentFolderId = diciplineFolder.id;
+            output.FolderStructure = folderPathToCreate;
+            return output;
+        }
+        else
+        {
+            folderPathToCreate.RemoveFirst();
+        }
+
+        // 6th level (sequentialNumber)
+
+        var fifthLevelIds = fifthLevelFolders.Select(x => x.id).ToArray();
+        var sixthLevelFolders = folders.Where(x => fifthLevelIds.Contains(x.parentFolderId)).ToArray();
+
+        var sequentialNumberFolder = sixthLevelFolders.FirstOrDefault(x => x.displayName == sequentialNumber);
+        if (sequentialNumberFolder == null)
+        {
+            output.ParentFolderId = subDiciplineFolder.id;
+            output.FolderStructure = folderPathToCreate;
+            return output;
+        }
+        else
+        {
+            folderPathToCreate.RemoveFirst();
+        }
+
+    }
+    return output;
+}
+
+List<Folder>? getDocuments()
+{
+    using StreamReader r = new(@"D:\Dev\Projects\Practise Projects\folderStructureApp\folderStructureApp\folders.json");
+    string json = r.ReadToEnd();
+    var items = JsonSerializer.Deserialize<List<Folder>>(json);
+    return items;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//var fileName = "ZNM-DCT-WIR-AR-AC-000015[00]_A1";
+
+//// remove extension
+//var splitName = fileName.Split('-');
+
+//var projCode = splitName[0];
+//var organisation = splitName[1];
+//var docType = splitName[2];
+//var dicipline = splitName[3];
+//var subDicipline = splitName[4];
+//var sequentialNumber = splitName[5];
+
+
+
+
+
 
 
 
@@ -28,17 +223,7 @@ linkedList.PrependNode("ooooooooooooooh");
 linkedList.PrintList();
 
 Console.ReadLine();
-// PRoject Code (ZNM) - Organisation (DCT) - Doc Type (WIR) - Dicipline (AR) - Sub Dicipline (AC) - Sequential Number (000015)
 
-//ZNM(Project Code) -
-//DCT(Organisation that created document) -
-//MIR(Type of Document(MIR material inspection request)) -
-//AR(Dicipline(architectural)) - 
-//AC(sub - discipline) - 
-//000003(sequential number based on document type / discipline)..
-
-
-// So this is the 3rd (0000003) form of MIR-AR
 
 
 // linked nodes 
@@ -61,19 +246,19 @@ class LinkedListNode
 
 class LinkedList
 {
-    int count;
+    int _count;
     LinkedListNode? _head;
     public LinkedList()
     {
         _head = null;
-        count = 0;
+        _count = 0;
     }
     public void PrependNode(string value)
     {
         var linkedListNode = new LinkedListNode(value);
         linkedListNode.next = _head;
         _head = linkedListNode;
-        count++;
+        _count++;
     }
 
     public void AppendNode(string value)
@@ -83,7 +268,7 @@ class LinkedList
         if (_head == null)
         {
             _head = newNode;
-            count++;
+            _count++;
         }
         else
         {
@@ -116,11 +301,15 @@ class LinkedList
             while (runner != null)
             {
                 Console.WriteLine($"Node: {runner.value}");
-
-                //Console.WriteLine(runner.value);
                 runner = runner.next;
             }
         }
 
     }
+}
+
+class FolderToCreate
+{
+    public string ParentFolderId { get; set; } = string.Empty;
+    public LinkedList<string> FolderStructure { get; set; } = new();
 }
